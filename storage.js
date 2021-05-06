@@ -1,0 +1,95 @@
+let sourceDataBaseObjects = {
+    2: {
+        id: 2,
+        parent_id: 1,
+        label: 'Мужская',
+        is_deleted: false,
+    },
+    1: {
+        id: 1,
+        parent_id: null,
+        label: 'Одежда',
+        is_deleted: false,
+    },
+    3: {
+        id: 3,
+        parent_id: 1,
+        label: 'Женская',
+        is_deleted: false,
+    },
+
+    4: {
+        id: 4,
+        parent_id: 2,
+        label: 'Костюмы',
+        is_deleted: false,
+    },
+    5: {
+        id: 5,
+        parent_id: 3,
+        label: 'Платья',
+        is_deleted: false,
+    },
+    6: {
+        id: 6,
+        parent_id: 3,
+        label: 'Юбки',
+        is_deleted: false,
+    },
+    7: {
+        id: 7,
+        parent_id: 3,
+        label: 'Блузки',
+        is_deleted: false,
+    },
+    8: {
+        id: 8,
+        parent_id: 4,
+        label: 'Брюки',
+        is_deleted: false,
+        // children: {},
+    },
+    9: {
+        id: 9,
+        parent_id: 4,
+        label: 'Пиждак',
+        is_deleted: false,
+    },
+    10: {
+        id: 10,
+        parent_id: 5,
+        label: 'Вечерние',
+        is_deleted: false,
+        // children: {},
+    },
+    15: {
+        id: 15,
+        parent_id: 10,
+        label: 'Портретное',
+        is_deleted: false,
+    },
+    14: {
+        id: 14,
+        parent_id: 10,
+        label: 'Бальное',
+        is_deleted: false,
+    },
+    12: {
+        id: 12,
+        parent_id: null,
+        label: 'BuildMaterials',
+        is_deleted: false,
+    },
+    11: {
+        id: 11,
+        parent_id: 5,
+        label: 'Сарафаны',
+        is_deleted: false,
+    },
+    13: {
+        id: 13,
+        parent_id: 12,
+        label: 'Bricks',
+        is_deleted: false,
+    },
+}
