@@ -199,7 +199,6 @@
         let databaseObjectsProxy = getDatabaseObjectProxy(databaseObjects);
         let cacheObjects = {};
         let cacheObjectsProxy = getCacheObjectsProxy(cacheObjects);
-        let cacheDatabaseObjects = {};
 
         /**
          * User action events (controllers)
@@ -229,8 +228,6 @@
                     });
                 }
             }
-
-            cacheDatabaseObjects = databaseObjects;
         }
 
         createCacheObjectButton.onclick = () => {
@@ -265,7 +262,7 @@
                     alert('Please input label');
                     return false;
                 }
-                let object = cacheObjectsProxy[selectedInput.value];
+                let object = cacheObjects[selectedInput.value];
                 object.label = labelValue;
                 cacheObjectsProxy[object.id] = object;
             }
@@ -280,7 +277,8 @@
                 return false;
             }
 
-            let databaseObjectsTree = getObjectsTree(cacheDatabaseObjects, parseInt(selectedInput.value));
+            // todo
+            let databaseObjectsTree = getObjectsTree(databaseObjects, parseInt(selectedInput.value));
             processTree(databaseObjectsTree, (obj) => {
                 if (cacheObjects[obj.id]) {
                     obj.is_deleted = true;
@@ -288,9 +286,10 @@
                 }
             });
 
+            // todo
             let cacheObjectsTree = getObjectsTree(cacheObjects, parseInt(selectedInput.value));
             processTree(cacheObjectsTree, (obj) => {
-                if (!cacheDatabaseObjects[obj.id]) {
+                if (!databaseObjects[obj.id]) {
                     delete cacheObjectsProxy[obj.id];
                 }
             });
