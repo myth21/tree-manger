@@ -376,13 +376,15 @@
         function processChildren(ids) {
             ids.forEach(id => {
                 let obj = cacheObjects[id];
-                obj.is_deleted = true;
-                let childIds = idsManager.getChildIds(obj.id);
-                if (childIds) {
-                    processChildren(childIds);
+                if (obj) {
+                    obj.is_deleted = true;
+                    let childIds = idsManager.getChildIds(obj.id);
+                    if (childIds) {
+                        processChildren(childIds);
+                    }
+                    // process leaf
+                    removeCacheObject(obj);
                 }
-                // process leaf
-                removeCacheObject(obj);
             });
         }
         let cacheObject = cacheObjects[selectedInput.value];
