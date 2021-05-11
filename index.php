@@ -34,17 +34,6 @@
     </div>
 </div>
 
-<div class="row mt-4" style="font-size: 12px;">
-    <div class="col-4">Cache:
-        <pre id="cacheLog"></pre>
-    </div>
-    <div class="col-4">Manager:
-        <pre id="managerLog"></pre>
-    </div>
-    <div class="col-4">Database:
-        <pre id="databaseLog"></pre>
-    </div>
-</div>
 <script>
 
     /**
