@@ -12,3 +12,7 @@ function getRandomInteger() {
     let number = 1 + '' + zero;
     return Math.round(randomNumber * parseInt(number));
 }
+
+function isEmpty(obj) {
+    return !Object.keys(obj).length;
+}

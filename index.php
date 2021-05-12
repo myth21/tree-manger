@@ -34,11 +34,48 @@
     </div>
 </div>
 
+<div class="row mt-4" style="font-size: 12px;">
+    <div class="col-4">Cache:
+        <pre id="cacheLog"></pre>
+    </div>
+    <div class="col-4">Manager:
+        <pre id="managerLog"></pre>
+    </div>
+    <div class="col-4">Database:
+        <pre id="databaseLog"></pre>
+    </div>
+</div>
+
 <script>
 
     /**
      * Functions
      */
+
+    function viewLogger() { // todo remove me
+
+        let view = '';
+        let map = idsManager.getAll();
+        for (let key in map) {
+            let obj = map[key];
+            view += key + ': ' + JSON.stringify(obj) + "\n";
+        }
+        managerLog.innerHTML = view;
+
+        view = '';
+        for (let key in cacheObjects) {
+            let obj = cacheObjects[key];
+            view += key + ': ' + JSON.stringify(obj) + "\n";
+        }
+        cacheLog.innerHTML = view;
+
+        view = '';
+        for (let key in databaseObjects) {
+            let obj = databaseObjects[key];
+            view += key + ': ' + JSON.stringify(obj) + "\n";
+        }
+        databaseLog.innerHTML = view;
+    }
 
     function getView(obj) {
         let randomId = getRandomString();
@@ -83,14 +120,14 @@
 
     function renderDatabaseTree(objectsTree) {
         databaseTreeView.innerHTML = getTreeView(objectsTree);
+
+        viewLogger();
     }
 
     function renderCacheTree(objectsTree) {
         cacheTreeView.innerHTML = getTreeView(objectsTree);
-    }
 
-    function isEmpty(obj) {
-        return !Object.keys(obj).length;
+        viewLogger();
     }
 
     /**
@@ -137,6 +174,22 @@
         return objects;
     }
 
+    function getCacheClosestParent(id) {
+
+        let databaseObject = databaseObjects[id];
+        if (!databaseObject.parent_id) {
+            return null; // mean root
+        }
+
+        let cacheParentObject = cacheObjects[databaseObject.parent_id];
+        if (cacheParentObject) {
+            return cacheParentObject;
+        }
+
+        let databaseParentObject = databaseObjects[databaseObject.parent_id];
+        return getCacheClosestParent(databaseParentObject.id);
+    }
+
     function getDatabaseObjectProxy(target) {
         return new Proxy(target, {
             get(objects, key) {
@@ -148,13 +201,15 @@
                 renderDatabaseTree(getObjectsTree(objects));
                 return true;
             },
-            setChildIds: (objects, targetObj) => {
-                idsManager.initRelation(targetObj);
-                processTree(getObjectsTree(objects, targetObj.id), (obj) => {
-                    if (targetObj.id != obj.id) {
-                        idsManager.addChildId(targetObj.id, obj.id);
+            setChildIds: (objects, rootObj) => {
+                /*
+                idsManager.initRelation(rootObj);
+                processTree(getObjectsTree(objects, rootObj.id), (obj) => {
+                    if (rootObj.id != obj.id) {
+                        idsManager.addChildId(rootObj.id, obj.id);
                     }
                 });
+                */
             },
         });
     }
@@ -266,7 +321,7 @@
             this.removeRelation(key);
             this.addRelation(relation.id, relation);
         }
-        getAll() { //temp to logging
+        getAll() { // todo temp to debug
             return this.map;
         }
     }
@@ -319,6 +374,24 @@
                 });
             }
         }
+
+        idsManager.initRelation(databaseObject);
+        processTree(getObjectsTree(databaseObjects, databaseObject.id), (obj) => {
+            if (databaseObject.id != obj.id) { // not add current element
+                if (cacheObjects.hasOwnProperty(obj.id)) {
+                    console.log('cacheObjects have key ' + obj.id + ' taken from database with root id ' + databaseObject.id)
+                    idsManager.addChildId(databaseObject.id, obj.id);
+                }
+            }
+        });
+        let parent = getCacheClosestParent(databaseObject.id);
+        if (parent) {
+            idsManager.addChildId(parent.id, databaseObject.id);
+        }
+
+        // temp to render
+        let tempObj = databaseObjects[13];
+        cacheObjectsProxy[13] = tempObj;
     }
 
     createCacheObjectButton.onclick = () => {
