@@ -34,48 +34,11 @@
     </div>
 </div>
 
-<div class="row mt-4" style="font-size: 12px;">
-    <div class="col-4">Cache:
-        <pre id="cacheLog"></pre>
-    </div>
-    <div class="col-4">Manager:
-        <pre id="managerLog"></pre>
-    </div>
-    <div class="col-4">Database:
-        <pre id="databaseLog"></pre>
-    </div>
-</div>
-
 <script>
 
     /**
      * Functions
      */
-
-    function viewLogger() { // todo remove me
-
-        let view = '';
-        let map = idsManager.getAll();
-        for (let key in map) {
-            let obj = map[key];
-            view += key + ': ' + JSON.stringify(obj) + "\n";
-        }
-        managerLog.innerHTML = view;
-
-        view = '';
-        for (let key in cacheObjects) {
-            let obj = cacheObjects[key];
-            view += key + ': ' + JSON.stringify(obj) + "\n";
-        }
-        cacheLog.innerHTML = view;
-
-        view = '';
-        for (let key in databaseObjects) {
-            let obj = databaseObjects[key];
-            view += key + ': ' + JSON.stringify(obj) + "\n";
-        }
-        databaseLog.innerHTML = view;
-    }
 
     function getView(obj) {
         let randomId = getRandomString();
@@ -120,14 +83,10 @@
 
     function renderDatabaseTree(objectsTree) {
         databaseTreeView.innerHTML = getTreeView(objectsTree);
-
-        viewLogger();
     }
 
     function renderCacheTree(objectsTree) {
         cacheTreeView.innerHTML = getTreeView(objectsTree);
-
-        viewLogger();
     }
 
     /**
@@ -192,25 +151,11 @@
 
     function getDatabaseObjectProxy(target) {
         return new Proxy(target, {
-            get(objects, key) {
-                this.setChildIds(objects, objects[key]);
-                return objects[key];
-            },
             set(objects, key, obj) {
                 objects[key] = obj;
                 renderDatabaseTree(getObjectsTree(objects));
                 return true;
-            },
-            setChildIds: (objects, rootObj) => {
-                /*
-                idsManager.initRelation(rootObj);
-                processTree(getObjectsTree(objects, rootObj.id), (obj) => {
-                    if (rootObj.id != obj.id) {
-                        idsManager.addChildId(rootObj.id, obj.id);
-                    }
-                });
-                */
-            },
+            }
         });
     }
 
@@ -219,7 +164,6 @@
             set(objects, key, obj) {
                 objects[key] = obj;
                 renderCacheTree(getObjectsTree(objects));
-                this.setChildIds(obj);
                 return true;
             },
             deleteProperty(objects, key) {
@@ -229,12 +173,6 @@
 
                 idsManager.removeChildIdFromParent(obj);
                 idsManager.removeRelation(obj.id);
-            },
-            setChildIds: (obj) => {
-                if (isNewCacheObject(obj)) {
-                    idsManager.initRelation(obj);
-                    idsManager.addChildId(obj.parent_id, obj.id);
-                }
             }
         });
     }
@@ -253,6 +191,26 @@
         } else {
             obj.is_deleted = true;
             cacheObjectsProxy[obj.id] = obj;
+        }
+    }
+
+    /**
+     * Mark all the child elements as delete in cache if parent has been deleted independent on cache tree that you can see
+     */
+    function deleteChildrenOnLoadInCache() {
+        for (let key in cacheObjects) {
+            let cacheObject = cacheObjects[key];
+            if (cacheObject.is_deleted) {
+                let databaseObjectsTree = getObjectsTree(databaseObjects, cacheObject.id);
+                processTree(databaseObjectsTree, (databaseObject) => {
+                    let childCacheObject = cacheObjects[databaseObject.id];
+                    // if object is in cache then mark as delete
+                    if (childCacheObject) {
+                        childCacheObject.is_deleted = true;
+                        cacheObjectsProxy[childCacheObject.id] = childCacheObject;
+                    }
+                });
+            }
         }
     }
 
@@ -298,7 +256,6 @@
         removeChildIdFromParent(obj) {
             let key = obj.parent_id;
             if (!this.map.hasOwnProperty(key)) {
-                console.error('Key ' +  key + ' not found');
                 return false;
             }
             this.map[key].childIds = this.map[key].childIds.filter(childId => childId != obj.id);
@@ -309,7 +266,7 @@
         removeAll() {
             this.map = {};
         }
-        markRelationAsProd(key) {
+        markRelationAsDatabase(key) {
             if (!this.map.hasOwnProperty(key)) {
                 console.error('Key ' +  key + ' not found');
                 return false;
@@ -320,9 +277,6 @@
             relation.childIds = relation.childIds.map(id => clearCacheId(id));
             this.removeRelation(key);
             this.addRelation(relation.id, relation);
-        }
-        getAll() { // todo temp to debug
-            return this.map;
         }
     }
     let idsManager = new IdsManager();
@@ -356,42 +310,23 @@
             alert('Please select item');
             return false;
         }
-        let databaseObject = databaseObjectsProxy[selectedInput.value];
+        let databaseObject = databaseObjects[selectedInput.value];
         cacheObjectsProxy[databaseObject.id] = databaseObject;
 
-        // Mark all the child elements as delete in cache if parent has been deleted independent on cache tree that you can see
-        for (let key in cacheObjects) {
-            let cacheObject = cacheObjects[key];
-            if (cacheObject.is_deleted) {
-                let databaseObjectsTree = getObjectsTree(databaseObjects, cacheObject.id);
-                processTree(databaseObjectsTree, (databaseObject) => {
-                    let childCacheObject = cacheObjects[databaseObject.id];
-                    // if object is in cache then mark as delete
-                    if (childCacheObject) {
-                        childCacheObject.is_deleted = true;
-                        cacheObjectsProxy[childCacheObject.id] = childCacheObject;
-                    }
-                });
-            }
-        }
+        deleteChildrenOnLoadInCache();
 
         idsManager.initRelation(databaseObject);
         processTree(getObjectsTree(databaseObjects, databaseObject.id), (obj) => {
-            if (databaseObject.id != obj.id) { // not add current element
-                if (cacheObjects.hasOwnProperty(obj.id)) {
-                    console.log('cacheObjects have key ' + obj.id + ' taken from database with root id ' + databaseObject.id)
-                    idsManager.addChildId(databaseObject.id, obj.id);
-                }
+            // add database id that is in cache only and exclude current element
+            if (cacheObjects[obj.id] && databaseObject.id != obj.id) {
+                idsManager.addChildId(databaseObject.id, obj.id);
             }
         });
         let parent = getCacheClosestParent(databaseObject.id);
         if (parent) {
+            // attach to a parent if one is
             idsManager.addChildId(parent.id, databaseObject.id);
         }
-
-        // temp to render
-        let tempObj = databaseObjects[13];
-        cacheObjectsProxy[13] = tempObj;
     }
 
     createCacheObjectButton.onclick = () => {
@@ -411,6 +346,9 @@
             label: label
         }
         cacheObjectsProxy[cacheObject.id] = cacheObject;
+
+        idsManager.initRelation(cacheObject);
+        idsManager.addChildId(cacheObject.parent_id, cacheObject.id);
     }
 
     renameCacheObjectButton.onclick = () => {
@@ -491,7 +429,8 @@
             } else { // insert
                 databaseObjectsProxy[cacheObject.id] = cacheObject;
             }
-            idsManager.markRelationAsProd(key);
+
+            idsManager.markRelationAsDatabase(key);
 
             delete cacheObjects[key];
             cacheObjectsProxy[cacheObject.id] = cacheObject;
